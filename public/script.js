@@ -3,37 +3,89 @@ let localStream;
 let peer;
 let currentCall;
 
-// Elementos del DOM
-const callBtn = document.getElementById('call-btn');
-const endCallBtn = document.getElementById('end-call-btn');
-const peerIdInput = document.getElementById('peer-id');
+// Configuración de PeerJS
+const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+const peerConfig = {
+  host: isProduction ? window.location.hostname : 'localhost',
+  port: isProduction ? 443 : 9000,
+  path: '/myapp',
+  secure: isProduction,
+  debug: 3
+};
 
-// 1. Inicializar PeerJS y medios
+// 1. Función para terminar la llamada (que faltaba)
+function endCall() {
+  if (currentCall) {
+    currentCall.close();
+    document.getElementById('remote-video').srcObject = null;
+    currentCall = null;
+  }
+  
+  // Habilitar/deshabilitar botones
+  document.getElementById('call-btn').disabled = false;
+  document.getElementById('end-call-btn').disabled = true;
+  document.getElementById('peer-id').disabled = false;
+}
+
+// 2. Función para configurar la llamada
+function setupCall(call) {
+  currentCall = call;
+
+  // Deshabilitar controles durante la llamada
+  document.getElementById('call-btn').disabled = true;
+  document.getElementById('end-call-btn').disabled = false;
+  document.getElementById('peer-id').disabled = true;
+
+  call.on('stream', (remoteStream) => {
+    document.getElementById('remote-video').srcObject = remoteStream;
+  });
+
+  call.on('close', endCall);
+  call.on('error', endCall);
+}
+
+// 3. Función para iniciar una llamada
+async function startCall() {
+  const peerId = document.getElementById('peer-id').value.trim();
+  if (!peerId) {
+    alert('Por favor ingresa el ID del otro usuario');
+    return;
+  }
+
+  try {
+    if (!localStream) {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      document.getElementById('local-video').srcObject = localStream;
+    }
+
+    const call = peer.call(peerId, localStream);
+    setupCall(call);
+  } catch (err) {
+    console.error('Error al iniciar llamada:', err);
+    alert('Error al conectar: ' + err.message);
+  }
+}
+
+// 4. Inicialización de la aplicación
 async function init() {
   try {
-    // Obtener stream de cámara/micrófono
-    localStream = await navigator.mediaDevices.getUserMedia({ 
-      video: true, 
-      audio: true 
-    });
+    // Obtener acceso a cámara/micrófono
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     document.getElementById('local-video').srcObject = localStream;
 
-    // Crear instancia Peer (sin ID fijo para mayor flexibilidad)
-    peer = new Peer({
-      host: 'localhost',
-      port: 10001,
-      path: '/myapp'
-    });
+    // Inicializar PeerJS
+    peer = new Peer(peerConfig);
 
-    // Eventos PeerJS
     peer.on('open', (id) => {
+      console.log('ID de Peer asignado:', id);
       document.getElementById('my-id').textContent = id;
-      console.log('✅ Peer conectado con ID:', id);
     });
 
     peer.on('error', (err) => {
-      console.error('❌ Error en Peer:', err);
-      alert(`Error: ${err.type}`);
+      console.error('Error en PeerJS:', err);
+      if (err.type === 'unavailable-id') {
+        peer = new Peer(peerConfig); // Reintentar con nuevo ID
+      }
     });
 
     // Manejar llamadas entrantes
@@ -43,62 +95,16 @@ async function init() {
     });
 
   } catch (err) {
-    console.error('Error al iniciar:', err);
-    alert('No se pudo acceder a la cámara/micrófono');
+    console.error('Error al inicializar:', err);
+    alert('Error al acceder a los dispositivos: ' + err.message);
   }
 }
 
-// 2. Configurar llamada (compartida para entrantes/salientes)
-function setupCall(call) {
-  currentCall = call;
+// Iniciar la aplicación cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', () => {
+  init();
   
-  // Actualizar UI
-  callBtn.disabled = true;
-  endCallBtn.disabled = false;
-  peerIdInput.disabled = true;
-
-  // Manejar stream remoto
-  call.on('stream', (remoteStream) => {
-    document.getElementById('remote-video').srcObject = remoteStream;
-  });
-
-  // Cuando termina la llamada
-  call.on('close', () => {
-    endCall();
-  });
-}
-
-// 3. Iniciar llamada
-callBtn.addEventListener('click', async () => {
-  const peerId = peerIdInput.value.trim();
-  if (!peerId) return alert('Ingresa un ID válido');
-
-  try {
-    const call = peer.call(peerId, localStream);
-    setupCall(call);
-  } catch (err) {
-    console.error('Error al llamar:', err);
-    alert('No se pudo conectar');
-  }
+  // Asignar event listeners a los botones
+  document.getElementById('call-btn').addEventListener('click', startCall);
+  document.getElementById('end-call-btn').addEventListener('click', endCall);
 });
-
-// 4. Terminar llamada
-endCallBtn.addEventListener('click', endCall);
-
-function endCall() {
-  if (currentCall) {
-    currentCall.close();
-    document.getElementById('remote-video').srcObject = null;
-    
-    // Resetear UI
-    callBtn.disabled = false;
-    endCallBtn.disabled = true;
-    peerIdInput.disabled = false;
-    
-    currentCall = null;
-  }
-}
-
-// Iniciar la aplicación al cargar
-window.addEventListener('DOMContentLoaded', init);gina
-window.onload = init;

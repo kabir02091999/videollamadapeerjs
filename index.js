@@ -3,20 +3,26 @@ const { PeerServer } = require('peer');
 const path = require('path');
 
 const app = express();
-const PORT =  process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
-// Configuración optimizada para PeerJS 1.0.2
+// Configuración optimizada para Render
 const peerServer = PeerServer({
-  port:  10001,
+  port: process.env.PEER_PORT || 9000,
   path: '/myapp',
-  proxied: true,  // Necesario si usas proxy/reverse proxy
-  allow_discovery: true  // Permite descubrir peers
+  proxied: true, // CRUCIAL para Render
+  ssl: process.env.NODE_ENV === 'production' // SSL en producción
 });
 
-// Servir archivos estáticos
+// Middleware para archivos estáticos
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Ruta principal
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`✅ Servidor HTTP en http://localhost:${PORT}`);
-  console.log(`✅ Servidor PeerJS en ws://localhost:10001/myapp`);
+  console.log(`✅ Servidor HTTP en puerto ${PORT}`);
+  console.log(`✅ PeerServer en puerto ${process.env.PEER_PORT || 9000}`);
 });
