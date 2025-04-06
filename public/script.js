@@ -21,7 +21,7 @@ async function init() {
     // Crear instancia Peer (sin ID fijo para mayor flexibilidad)
     peer = new Peer({
       host: 'localhost',
-      port: 9000,
+      port: 10001,
       path: '/myapp'
     });
 
