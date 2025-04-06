@@ -1,4 +1,4 @@
-// Variables globales
+/* // Variables globales
 let localStream;
 let peer;
 let currentCall;
@@ -7,7 +7,7 @@ let currentCall;
 const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
 const peerConfig = {
   host: isProduction ? window.location.hostname : 'localhost',
-  port: isProduction ? 443 : 9000,
+  port: isProduction ? 443 : 5000,
   path: '/myapp',
   secure: isProduction,
   debug: 3
@@ -107,4 +107,81 @@ document.addEventListener('DOMContentLoaded', () => {
   // Asignar event listeners a los botones
   document.getElementById('call-btn').addEventListener('click', startCall);
   document.getElementById('end-call-btn').addEventListener('click', endCall);
+}); */
+
+// Configuración dinámica para producción
+const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+
+const getPeerConfig = () => ({
+  host: isProduction ? window.location.hostname : 'localhost',
+  port: isProduction ? 443 : 9000, // 443 en producción para HTTPS
+  path: '/myapp',
+  secure: isProduction,
+  debug: 3, // Máxima verbosidad
+  config: { // Servidores STUN/TURN adicionales
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' }
+    ]
+  }
+});
+
+// Función con reconexión automática
+function createPeerConnection() {
+  const config = getPeerConfig();
+  console.log('Configuración PeerJS:', config);
+  
+  const peer = new Peer(config);
+
+  peer.on('open', (id) => {
+    console.log('✅ ID generado:', id);
+    document.getElementById('my-id').textContent = id;
+    document.getElementById('my-id').style.color = 'green';
+  });
+
+  peer.on('error', (err) => {
+    console.error('❌ PeerJS Error:', err);
+    document.getElementById('my-id').textContent = `Error: ${err.type}`;
+    document.getElementById('my-id').style.color = 'red';
+    
+    // Reconexión automática para errores recuperables
+    if (['server-error', 'unavailable-id', 'socket-error'].includes(err.type)) {
+      setTimeout(() => {
+        console.log('⚡ Reconectando PeerJS...');
+        createPeerConnection();
+      }, 3000);
+    }
+  });
+
+  return peer;
+}
+
+// Inicialización segura
+document.addEventListener('DOMContentLoaded', async () => {
+  // Forzar HTTPS en producción
+  if (isProduction && window.location.protocol !== 'https:') {
+    window.location.href = window.location.href.replace('http:', 'https:');
+    return;
+  }
+
+  // Verificar conectividad primero
+  try {
+    const response = await fetch('/peerjs/health');
+    if (!response.ok) throw new Error('Server not ready');
+    
+    window.peer = createPeerConnection();
+    
+    // Monitor de conexión
+    setInterval(() => {
+      if (!window.peer || !window.peer.id) {
+        console.log('🔍 Revisando conexión PeerJS...');
+        window.peer = createPeerConnection();
+      }
+    }, 10000);
+    
+  } catch (error) {
+    console.error('Error inicial:', error);
+    document.getElementById('my-id').textContent = 'Servidor no disponible';
+  }
 });
