@@ -3,7 +3,7 @@ const { PeerServer } = require('peer');
 const path = require('path');
 
 const app = express();
-const PORT =  3000;
+const PORT =  process.env.PORT || 3000;
 
 // Configuración optimizada para PeerJS 1.0.2
 const peerServer = PeerServer({
