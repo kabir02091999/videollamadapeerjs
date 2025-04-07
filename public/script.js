@@ -1,4 +1,4 @@
-/* // Variables globales
+// Variables globales
 let localStream;
 let peer;
 let currentCall;
@@ -107,10 +107,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Asignar event listeners a los botones
   document.getElementById('call-btn').addEventListener('click', startCall);
   document.getElementById('end-call-btn').addEventListener('click', endCall);
-}); */
+});
 
 // Configuración dinámica para producción
-const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+/* const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
 
 const getPeerConfig = () => ({
   host: isProduction ? window.location.hostname : 'localhost',
@@ -184,4 +184,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Error inicial:', error);
     document.getElementById('my-id').textContent = 'Servidor no disponible';
   }
-});
+}); */

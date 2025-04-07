@@ -1,4 +1,4 @@
-/* const express = require('express');
+const express = require('express');
 const { PeerServer } = require('peer');
 const path = require('path');
 
@@ -25,9 +25,9 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ http://localhost:${PORT}`);
   console.log(`✅ PeerServer en puerto ${process.env.PEER_PORT || 5000}`);
-}); */
+});
 
-const express = require('express');
+/* const express = require('express');
 const { PeerServer } = require('peer');
 const path = require('path');
 
@@ -62,7 +62,7 @@ app.get('/peerjs/health', (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ Servidor HTTP: ${PORT}`);
   console.log(`✅ PeerJS Server: ${process.env.PEER_PORT || 9000}`);
-});
+}); */
 
 /* const express = require('express');
 const { PeerServer } = require('peer');
